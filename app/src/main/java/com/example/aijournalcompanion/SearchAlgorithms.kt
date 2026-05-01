@@ -3,25 +3,23 @@ package com.example.aijournalcompanion
 /**
  * SearchAlgorithms contains custom implementations of searching logic
  * using different data structures as per requirements.
+ * Updated to search by Emotion instead of Text.
  */
 object SearchAlgorithms {
 
     // --- 1. HASH-BASED (MAP) SEARCH ---
-    // High performance keyword lookup using a Map.
+    // High performance emotion lookup using a Map.
     fun searchUsingMap(entries: List<JournalEntry>, query: String): List<JournalEntry> {
         if (query.isBlank()) return entries
         
-        val keywordMap = mutableMapOf<String, MutableList<JournalEntry>>()
+        val emotionMap = mutableMapOf<String, MutableList<JournalEntry>>()
         for (entry in entries) {
-            val words = entry.text.lowercase().split(Regex("\\W+"))
-            for (word in words) {
-                if (word.isNotEmpty()) {
-                    keywordMap.getOrPut(word) { mutableListOf() }.add(entry)
-                }
-            }
+            val emotion = entry.emotion?.lowercase() ?: "neutral"
+            // Emotions are usually single words, but we'll store them as keys
+            emotionMap.getOrPut(emotion) { mutableListOf() }.add(entry)
         }
-        // Returns entries that contain the specific word (exact word match)
-        return keywordMap[query.lowercase()]?.distinct() ?: emptyList()
+        // Returns entries that match the specific emotion (exact match for map lookup)
+        return emotionMap[query.lowercase()] ?: emptyList()
     }
 
     // --- 2. BINARY TREE SEARCH ---
@@ -34,7 +32,7 @@ object SearchAlgorithms {
         if (query.isBlank()) return entries
         if (entries.isEmpty()) return emptyList()
 
-        // Build the BST (sorted by text)
+        // Build the BST (sorted by emotion)
         var root: TreeNode? = null
         for (entry in entries) {
             root = insertIntoTree(root, entry)
@@ -47,7 +45,10 @@ object SearchAlgorithms {
 
     private fun insertIntoTree(root: TreeNode?, entry: JournalEntry): TreeNode {
         if (root == null) return TreeNode(entry)
-        if (entry.text.lowercase() < root.entry.text.lowercase()) {
+        val entryEmotion = entry.emotion?.lowercase() ?: "neutral"
+        val rootEmotion = root.entry.emotion?.lowercase() ?: "neutral"
+        
+        if (entryEmotion < rootEmotion) {
             root.left = insertIntoTree(root.left, entry)
         } else {
             root.right = insertIntoTree(root.right, entry)
@@ -57,7 +58,8 @@ object SearchAlgorithms {
 
     private fun traverseAndSearch(node: TreeNode?, query: String, results: MutableList<JournalEntry>) {
         if (node == null) return
-        if (node.entry.text.lowercase().contains(query)) {
+        val nodeEmotion = node.entry.emotion?.lowercase() ?: "neutral"
+        if (nodeEmotion.contains(query)) {
             results.add(node.entry)
         }
         traverseAndSearch(node.left, query, results)
@@ -88,7 +90,8 @@ object SearchAlgorithms {
         val results = mutableListOf<JournalEntry>()
         var searchNode: DLLNode? = head
         while (searchNode != null) {
-            if (searchNode.entry.text.lowercase().contains(query.lowercase())) {
+            val nodeEmotion = searchNode.entry.emotion?.lowercase() ?: "neutral"
+            if (nodeEmotion.contains(query.lowercase())) {
                 results.add(searchNode.entry)
             }
             searchNode = searchNode.next

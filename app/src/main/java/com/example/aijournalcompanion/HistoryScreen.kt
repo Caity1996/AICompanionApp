@@ -67,7 +67,7 @@ fun HistoryScreen() {
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                placeholder = { Text("Search thoughts...") },
+                placeholder = { Text("Search emotions (e.g. Joy, Sadness)...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true
             )
