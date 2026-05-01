@@ -26,6 +26,7 @@ fun InsightsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding() // Pushes content below the camera/status bar
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

@@ -21,6 +21,7 @@ fun JournalScreen(viewModel: JournalViewModel = viewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding() // Pushes content below the camera/status bar
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

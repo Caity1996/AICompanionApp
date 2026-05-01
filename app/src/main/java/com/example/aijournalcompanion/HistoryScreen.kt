@@ -39,35 +39,43 @@ fun HistoryScreen() {
     var expandedSort by remember { mutableStateOf(false) }
     var selectedSortName by remember { mutableStateOf("Default") }
 
-    // Drag and Drop State
+    var sortTrigger by remember { mutableStateOf(0) }
+
+    val allEntries = JournalHistory.entries
+    
+    val filteredEntries by remember(searchQuery, selectedSearchType, sortTrigger) {
+        derivedStateOf {
+            when (selectedSearchType) {
+                SearchType.MAP -> SearchAlgorithms.searchUsingMap(allEntries, searchQuery)
+                SearchType.TREE -> SearchAlgorithms.searchUsingBinaryTree(allEntries, searchQuery)
+                SearchType.DLL -> SearchAlgorithms.searchUsingDLL(allEntries, searchQuery)
+            }
+        }
+    }
+
     var draggedEntry by remember { mutableStateOf<JournalEntry?>(null) }
     var trashZonePosition by remember { mutableStateOf(Offset.Zero) }
     var trashZoneSize by remember { mutableStateOf(IntOffset.Zero) }
     var isHoveringTrash by remember { mutableStateOf(false) }
 
-    val allEntries = JournalHistory.entries
-    val filteredEntries = remember(allEntries, searchQuery, selectedSearchType) {
-        when (selectedSearchType) {
-            SearchType.MAP -> SearchAlgorithms.searchUsingMap(allEntries, searchQuery)
-            SearchType.TREE -> SearchAlgorithms.searchUsingBinaryTree(allEntries, searchQuery)
-            SearchType.DLL -> SearchAlgorithms.searchUsingDLL(allEntries, searchQuery)
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding() // Pushes content below the camera/status bar
+                .padding(16.dp)
+        ) {
             Text(
                 text = "Journal History",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Search and Sort UI
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                placeholder = { Text("Search emotions (e.g. Joy, Sadness)...") },
+                placeholder = { Text("Search thoughts...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true
             )
@@ -86,13 +94,12 @@ fun HistoryScreen() {
                 }
             }
 
-            // Sort Dropdown
             Box(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                 OutlinedButton(
                     onClick = { expandedSort = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Sort by: $selectedSortName")
+                    Text("Sort: $selectedSortName")
                 }
                 DropdownMenu(
                     expanded = expandedSort,
@@ -100,33 +107,35 @@ fun HistoryScreen() {
                     modifier = Modifier.fillMaxWidth(0.9f)
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Bubble Sort") },
+                        text = { Text("Bubble Sort (Oldest First)") },
                         onClick = {
-                            selectedSortName = "Bubble Sort"
+                            selectedSortName = "Oldest First"
                             JournalHistory.sortByBubbleSort()
+                            sortTrigger++ 
                             expandedSort = false
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Insertion Sort") },
+                        text = { Text("Insertion Sort (Emotion A-Z)") },
                         onClick = {
-                            selectedSortName = "Insertion Sort"
+                            selectedSortName = "Emotion A-Z"
                             JournalHistory.sortByInsertionSort()
+                            sortTrigger++
                             expandedSort = false
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Selection Sort") },
+                        text = { Text("Selection Sort (Newest First)") },
                         onClick = {
-                            selectedSortName = "Selection Sort"
+                            selectedSortName = "Newest First"
                             JournalHistory.sortBySelectionSort()
+                            sortTrigger++
                             expandedSort = false
                         }
                     )
                 }
             }
 
-            // List of Entries
             if (filteredEntries.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(if (searchQuery.isEmpty()) "No entries yet." else "No matches found.")
@@ -135,14 +144,13 @@ fun HistoryScreen() {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp) // Space for Trash Zone
+                    contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
                     items(filteredEntries, key = { it.id }) { entry ->
                         DraggableEntryCard(
                             entry = entry,
                             onDragStart = { draggedEntry = it },
                             onDragEnd = { offset ->
-                                // Check if dropped in trash zone
                                 if (isOffsetInTrashZone(offset, trashZonePosition, trashZoneSize)) {
                                     JournalHistory.deleteEntry(entry)
                                 }
@@ -158,14 +166,13 @@ fun HistoryScreen() {
             }
         }
 
-        // --- TRASH ZONE ---
         AnimatedVisibility(
             visible = draggedEntry != null,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            val scale by animateFloatAsState(if (isHoveringTrash) 1.2f else 1f)
+            val scale by animateFloatAsState(if (isHoveringTrash) 1.2f else 1f, label = "trashScale")
             val color = if (isHoveringTrash) Color.Red else MaterialTheme.colorScheme.error
 
             Box(
@@ -211,8 +218,6 @@ fun DraggableEntryCard(
                         onDragStart(entry)
                     },
                     onDragEnd = {
-                        // Calculate absolute position for drop check
-                        // Note: This is simplified. In a real app you'd use layout coordinates.
                         onDragEnd(offset) 
                         offset = Offset.Zero
                         isDragging = false
@@ -229,9 +234,9 @@ fun DraggableEntryCard(
                 )
             }
             .graphicsLayer(
-                scaleX = if (isDragging) 0.9f else 1f,
-                scaleY = if (isDragging) 0.9f else 1f,
-                alpha = if (isDragging) 0.7f else 1f
+                scaleX = if (isDragging) 0.95f else 1f,
+                scaleY = if (isDragging) 0.95f else 1f,
+                alpha = if (isDragging) 0.8f else 1f
             )
     ) {
         EntryCard(entry)
@@ -239,10 +244,7 @@ fun DraggableEntryCard(
 }
 
 private fun isOffsetInTrashZone(dragOffset: Offset, trashPos: Offset, trashSize: IntOffset): Boolean {
-    // This is a simplified check. A more robust way would involve getting the absolute 
-    // position of the card during drag. 
-    // For this prototype, we'll check if the drag distance is sufficient to reach the bottom.
-    return dragOffset.y > 300f // Rough estimate for "dragging towards the bottom"
+    return dragOffset.y > 300f
 }
 
 @Composable

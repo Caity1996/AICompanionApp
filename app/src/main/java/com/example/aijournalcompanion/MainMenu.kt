@@ -12,7 +12,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MainMenu(onNavigate: (AppScreen) -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding() // Pushes content below the camera/status bar
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -22,21 +25,18 @@ fun MainMenu(onNavigate: (AppScreen) -> Unit) {
             modifier = Modifier.padding(bottom = 32.dp)
         )
 
-        // New Journal Button with Tooltip
         MenuButtonWithTooltip(
             text = "New Journal Entry",
             tooltip = "Start a new daily reflection and get AI feedback.",
             onClick = { onNavigate(AppScreen.JOURNAL) }
         )
 
-        // History Button with Tooltip
         MenuButtonWithTooltip(
             text = "View History",
             tooltip = "Access, sort, and search your past journal entries.",
             onClick = { onNavigate(AppScreen.HISTORY) }
         )
 
-        // Insights Button with Tooltip
         MenuButtonWithTooltip(
             text = "Emotion Insights",
             tooltip = "Visualize your emotional trends over time with a pie chart.",
